@@ -1,32 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter/foundation.dart'; // Necessário para usar o kIsWeb
+// import 'package:flutter/foundation.dart'; // Não precisa mais importar isso
 
 import 'providers/app_settings.dart';
 import 'screens/splash_screen.dart';
+import 'firebase_options.dart'; // Certifique-se que este import está aqui
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  if (kIsWeb) {
-    // === CONFIGURAÇÃO EXATA DA SUA IMAGEM ===
-    await Firebase.initializeApp(
-      options: const FirebaseOptions(
-        apiKey: "AIzaSyCkki9AyDg2NyCMLXIhDGMcJfNdndA9Lk",
-        authDomain: "tabarrocars.firebaseapp.com",
-        projectId: "tabarrocars",
-        storageBucket: "tabarrocars.firebasestorage.app",
-        messagingSenderId: "47935554618",
-        appId: "1:47935554618:web:9c746f35a6ee2506a52103",
-        measurementId: "G-JKQVYRX1RL",
-      ),
-    );
-  } else {
-    // === ANDROID E IOS (Automático pelo google-services.json) ===
-    await Firebase.initializeApp();
-  }
+  // === INICIALIZAÇÃO UNIVERSAL (WEB, ANDROID, IOS) ===
+  // O DefaultFirebaseOptions.currentPlatform já pega a configuração correta
+  // de dentro do arquivo firebase_options.dart (que tem a chave certa para Web)
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   
+  // O runApp fica FORA de qualquer if/else para rodar em todas as plataformas
   runApp(
     ChangeNotifierProvider(
       create: (context) => AppSettings(),

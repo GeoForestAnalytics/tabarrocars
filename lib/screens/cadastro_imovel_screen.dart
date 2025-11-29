@@ -1,8 +1,13 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart'; // Importante para kIsWeb
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:geolocator/geolocator.dart'; // <--- Import do GPS
+import 'package:geolocator/geolocator.dart';
+import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+import '../providers/app_settings.dart';
 import '../models/imovel_model.dart';
 import '../services/imovel_service.dart';
 
@@ -22,10 +27,9 @@ class _CadastroImovelScreenState extends State<CadastroImovelScreen> {
   final _valorController = TextEditingController();
   final _descricaoController = TextEditingController();
 
-  List<File> _novasImagens = [];
+  List<XFile> _novasImagens = [];
   List<String> _fotosExistentes = [];
   
-  // Variáveis para guardar a localização
   double? _latitude;
   double? _longitude;
   bool _obtendoLocalizacao = false;
@@ -45,44 +49,27 @@ class _CadastroImovelScreenState extends State<CadastroImovelScreen> {
       _valorController.text = i.valor.toStringAsFixed(2);
       _descricaoController.text = i.descricao;
       _fotosExistentes = List.from(i.fotos);
-      // Carrega localização existente
       _latitude = i.latitude;
       _longitude = i.longitude;
     }
   }
 
-  // --- FUNÇÃO PARA PEGAR GPS ---
   Future<void> _capturarLocalizacao() async {
     setState(() => _obtendoLocalizacao = true);
-
     try {
-      // 1. Verifica permissões
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          throw "Permissão de localização negada";
-        }
+        if (permission == LocationPermission.denied) throw "Permissão de localização negada";
       }
-
-      // 2. Pega a posição atual
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high
-      );
-
+      Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
       setState(() {
         _latitude = position.latitude;
         _longitude = position.longitude;
       });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Localização capturada com sucesso! 📍')),
-      );
-
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Localização capturada! 📍')));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao pegar localização: $e')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erro: $e')));
     } finally {
       setState(() => _obtendoLocalizacao = false);
     }
@@ -92,17 +79,26 @@ class _CadastroImovelScreenState extends State<CadastroImovelScreen> {
     final ImagePicker picker = ImagePicker();
     final List<XFile> imagens = await picker.pickMultiImage();
     if (imagens.isNotEmpty) {
-      setState(() => _novasImagens.addAll(imagens.map((x) => File(x.path))));
+      setState(() => _novasImagens.addAll(imagens));
     }
   }
 
   Future<List<String>> _uploadTodasImagens() async {
     List<String> urls = [];
-    for (var imagem in _novasImagens) {
+    for (var imagemXFile in _novasImagens) {
       String nomeArquivo = "imovel_${DateTime.now().millisecondsSinceEpoch}_${urls.length}";
       Reference ref = FirebaseStorage.instance.ref().child('imoveis/$nomeArquivo.jpg');
-      await ref.putFile(imagem);
-      urls.add(await ref.getDownloadURL());
+      
+      UploadTask uploadTask;
+      if (kIsWeb) {
+        final bytes = await imagemXFile.readAsBytes();
+        uploadTask = ref.putData(bytes, SettableMetadata(contentType: 'image/jpeg'));
+      } else {
+        File file = File(imagemXFile.path);
+        uploadTask = ref.putFile(file);
+      }
+      
+      urls.add(await (await uploadTask).ref.getDownloadURL());
     }
     return urls;
   }
@@ -112,8 +108,6 @@ class _CadastroImovelScreenState extends State<CadastroImovelScreen> {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Preencha Título e Valor')));
       return;
     }
-
-    // Opcional: Obrigar a ter localização? Por enquanto vou deixar opcional.
     
     setState(() => _isLoading = true);
     try {
@@ -129,8 +123,8 @@ class _CadastroImovelScreenState extends State<CadastroImovelScreen> {
         valor: double.tryParse(_valorController.text.replaceAll('.', '').replaceAll(',', '.')) ?? 0,
         descricao: _descricaoController.text,
         fotos: [..._fotosExistentes, ...novasUrls],
-        latitude: _latitude,   // Salva no banco
-        longitude: _longitude, // Salva no banco
+        latitude: _latitude,
+        longitude: _longitude,
       );
 
       if (widget.imovelParaEditar == null) {
@@ -146,7 +140,113 @@ class _CadastroImovelScreenState extends State<CadastroImovelScreen> {
     }
   }
 
-  Widget _buildPreviewFotos() {
+  InputDecoration _estiloInput(String label, Color corTexto) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: TextStyle(color: corTexto.withOpacity(0.7)),
+      filled: true,
+      fillColor: Colors.white.withOpacity(0.05),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: corTexto.withOpacity(0.3))),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: corTexto, width: 2)),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final settings = Provider.of<AppSettings>(context);
+    final isDark = settings.isDark;
+
+    final Color azulMarinho = const Color.fromARGB(255, 2, 56, 83);
+    final Color dourado = const Color(0xFFEBE4AB);
+    final Color corTexto = isDark ? dourado : azulMarinho;
+    final List<Color> gradiente = isDark ? [const Color(0xFF1E293B), Colors.black] : [const Color(0xFFFFFDF0), const Color(0xFFEBE4AB)];
+
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        title: Text(widget.imovelParaEditar == null ? "NOVO IMÓVEL" : "EDITAR IMÓVEL", style: GoogleFonts.montserrat(fontWeight: FontWeight.bold, color: corTexto, fontSize: 16)),
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: IconThemeData(color: corTexto),
+      ),
+      body: Container(
+        // Fundo Gradiente Tela Cheia
+        width: double.infinity,
+        height: double.infinity,
+        decoration: BoxDecoration(gradient: RadialGradient(center: Alignment.topCenter, radius: 1.5, colors: gradiente)),
+        
+        // CORREÇÃO DE LARGURA AQUI:
+        child: _isLoading 
+        ? Center(child: CircularProgressIndicator(color: corTexto)) 
+        : Center( // 1. Centraliza
+            child: ConstrainedBox( // 2. Limita largura
+              constraints: const BoxConstraints(maxWidth: 700),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 100, 20, 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("Fotos do Imóvel", style: GoogleFonts.montserrat(fontWeight: FontWeight.bold, fontSize: 16, color: corTexto)),
+                    const SizedBox(height: 10),
+                    _buildPreviewFotos(corTexto),
+                    const SizedBox(height: 25),
+                    
+                    TextField(controller: _tituloController, style: TextStyle(color: corTexto), decoration: _estiloInput("Título (Ex: Casa Centro)", corTexto)),
+                    const SizedBox(height: 15),
+                    TextField(controller: _localController, style: TextStyle(color: corTexto), decoration: _estiloInput("Endereço", corTexto)),
+                    
+                    const SizedBox(height: 15),
+                    // --- BOTÃO GPS ---
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(color: corTexto.withOpacity(0.1), borderRadius: BorderRadius.circular(10), border: Border.all(color: corTexto.withOpacity(0.3))),
+                      child: Column(
+                        children: [
+                          if (_latitude != null) Text("Coordenadas Salvas ✅", style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 5),
+                          ElevatedButton.icon(
+                            onPressed: _obtendoLocalizacao ? null : _capturarLocalizacao,
+                            icon: _obtendoLocalizacao ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.my_location),
+                            label: Text(_obtendoLocalizacao ? "Obtendo..." : "USAR LOCALIZAÇÃO ATUAL"),
+                            style: ElevatedButton.styleFrom(backgroundColor: corTexto, foregroundColor: isDark ? azulMarinho : Colors.white),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 15),
+                    Row(children: [
+                      Expanded(child: TextField(controller: _quartosController, keyboardType: TextInputType.number, style: TextStyle(color: corTexto), decoration: _estiloInput("Quartos", corTexto))),
+                      const SizedBox(width: 10),
+                      Expanded(child: TextField(controller: _areaController, keyboardType: TextInputType.number, style: TextStyle(color: corTexto), decoration: _estiloInput("Área (m²)", corTexto))),
+                    ]),
+                    const SizedBox(height: 15),
+                    TextField(controller: _valorController, keyboardType: TextInputType.number, style: TextStyle(color: corTexto), decoration: _estiloInput("Valor (R\$)", corTexto)),
+                    const SizedBox(height: 15),
+                    TextField(controller: _descricaoController, maxLines: 3, style: TextStyle(color: corTexto), decoration: _estiloInput("Descrição", corTexto)),
+                    
+                    const SizedBox(height: 40),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 55,
+                      child: ElevatedButton(
+                        onPressed: _salvarImovel,
+                        style: ElevatedButton.styleFrom(backgroundColor: corTexto, foregroundColor: isDark ? azulMarinho : Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
+                        child: const Text("SALVAR IMÓVEL", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ),
+    );
+  }
+
+  Widget _buildPreviewFotos(Color corIcone) {
     return SizedBox(
       height: 100,
       child: ListView(
@@ -156,78 +256,13 @@ class _CadastroImovelScreenState extends State<CadastroImovelScreen> {
             onTap: _selecionarImagens,
             child: Container(
               width: 80, margin: const EdgeInsets.only(right: 10),
-              color: Colors.grey[300], child: const Icon(Icons.add_a_photo),
+              decoration: BoxDecoration(color: corIcone.withOpacity(0.1), borderRadius: BorderRadius.circular(10), border: Border.all(color: corIcone.withOpacity(0.3))),
+              child: Icon(Icons.add_a_photo, color: corIcone),
             ),
           ),
-          ..._fotosExistentes.map((url) => Image.network(url, width: 100, fit: BoxFit.cover)),
-          ..._novasImagens.map((file) => Image.file(file, width: 100, fit: BoxFit.cover)),
+          ..._fotosExistentes.map((url) => Padding(padding: const EdgeInsets.only(right: 10), child: ClipRRect(borderRadius: BorderRadius.circular(10), child: Image.network(url, width: 100, fit: BoxFit.cover)))),
+          ..._novasImagens.map((xFile) => Padding(padding: const EdgeInsets.only(right: 10), child: ClipRRect(borderRadius: BorderRadius.circular(10), child: kIsWeb ? Image.network(xFile.path, width: 100, fit: BoxFit.cover) : Image.file(File(xFile.path), width: 100, fit: BoxFit.cover)))),
         ],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(widget.imovelParaEditar == null ? "Novo Imóvel" : "Editar Imóvel")),
-      body: _isLoading ? const Center(child: CircularProgressIndicator()) : SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            const Text("Fotos do Imóvel", style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 10),
-            _buildPreviewFotos(),
-            const SizedBox(height: 20),
-            
-            TextField(controller: _tituloController, decoration: const InputDecoration(labelText: "Título (Ex: Casa Centro)")),
-            TextField(controller: _localController, decoration: const InputDecoration(labelText: "Endereço por escrito")),
-            
-            const SizedBox(height: 10),
-            
-            // --- BOTÃO DE PEGAR COORDENADAS ---
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.blue[50],
-                border: Border.all(color: Colors.blue),
-                borderRadius: BorderRadius.circular(8)
-              ),
-              child: Column(
-                children: [
-                  if (_latitude != null) 
-                    Text(
-                      "Coordenadas Salvas: ✅\nLat: $_latitude\nLong: $_longitude",
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
-                    ),
-                  const SizedBox(height: 5),
-                  ElevatedButton.icon(
-                    onPressed: _obtendoLocalizacao ? null : _capturarLocalizacao,
-                    icon: _obtendoLocalizacao 
-                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) 
-                        : const Icon(Icons.my_location),
-                    label: Text(_obtendoLocalizacao ? "Obtendo..." : "USAR MINHA LOCALIZAÇÃO ATUAL"),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white),
-                  ),
-                  const Text("Esteja no local do imóvel para usar esta função.", style: TextStyle(fontSize: 12, color: Colors.grey)),
-                ],
-              ),
-            ),
-            // ----------------------------------
-
-            const SizedBox(height: 10),
-            Row(children: [
-              Expanded(child: TextField(controller: _quartosController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Quartos"))),
-              const SizedBox(width: 10),
-              Expanded(child: TextField(controller: _areaController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Área (m²)"))),
-            ]),
-            TextField(controller: _valorController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Valor (R\$)")),
-            TextField(controller: _descricaoController, maxLines: 3, decoration: const InputDecoration(labelText: "Descrição")),
-            const SizedBox(height: 30),
-            SizedBox(width: double.infinity, height: 50, child: ElevatedButton(onPressed: _salvarImovel, child: const Text("SALVAR"))),
-          ],
-        ),
       ),
     );
   }

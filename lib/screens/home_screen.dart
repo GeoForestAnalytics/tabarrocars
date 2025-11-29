@@ -277,7 +277,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             child: Icon(isVeiculo ? Icons.directions_car : Icons.home, size: 50, color: Colors.grey)
           );
 
-    final settings = Provider.of<AppSettings>(context, listen: false);
+    // === CORREÇÃO DE CORES PARA LEITURA ===
+    // O fundo do card agora é Dourado (Dark) ou Branco (Light).
+    // Para ler bem, o texto precisa ser ESCURO em ambos os casos.
+    final Color corTextoForte = const Color(0xFF0F172A); // Azul bem escuro
+    final Color corTextoSuave = const Color(0xFF0F172A).withOpacity(0.7);
 
     // === RETORNA O CARTÃO FUTURISTA ===
     return FuturisticCard(
@@ -300,8 +304,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
          if (isVeiculo) _confirmarExclusao(context, id, titulo);
          else _confirmarExclusaoImovel(context, id, titulo);
       },
-      corTitulo: settings.isDark ? const Color(0xFFEBE4AB) : const Color(0xFF0F172A),
-      corSubtitulo: settings.isDark ? Colors.white : Colors.black87, 
+      // AQUI MUDAMOS: Texto sempre escuro para contrastar com o card claro/dourado
+      corTitulo: corTextoForte,
+      corSubtitulo: corTextoSuave, 
       corCardFundo: corBg,
     );
   }

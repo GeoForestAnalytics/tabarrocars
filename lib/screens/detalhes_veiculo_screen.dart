@@ -82,37 +82,32 @@ class _DetalhesVeiculoScreenState extends State<DetalhesVeiculoScreen> {
   Widget build(BuildContext context) {
     final settings = Provider.of<AppSettings>(context);
     
-    // === CORES DA MARCA (IDÊNTICAS À HOME) ===
+    // === CORES DA MARCA ===
     final Color azulMarinho = const Color.fromARGB(255, 2, 56, 83);
     final Color dourado = const Color(0xFFEBE4AB);
 
-    // Lógica da Barra Superior (AppBar)
-    // Se Escuro -> Texto Dourado
-    // Se Claro -> Texto Azul
     final Color corItensBarra = settings.isDark ? dourado : azulMarinho;
-
-    // Lógica do Texto do Corpo
     final Color corTextoConteudo = settings.isDark ? Colors.white : azulMarinho;
-    final Color corDestaqueBotao = const Color(0xFFE6D88F); // Amarelo Pastel
+    final Color corDestaqueBotao = const Color(0xFFE6D88F); 
 
-    // Gradiente de Fundo
     final List<Color> coresGradiente = settings.isDark 
         ? [const Color(0xFF1E293B), Colors.black] 
         : [const Color(0xFFFFFDF0), const Color(0xFFEBE4AB)];
 
     return Scaffold(
+      // === ESSA LINHA REMOVE A BARRA BRANCA ===
+      extendBodyBehindAppBar: true, 
+      
       backgroundColor: Colors.transparent, 
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        // ÍCONE DA SETA (Voltar)
         iconTheme: IconThemeData(color: corItensBarra), 
-        // TÍTULO
         title: Text(
           "DETALHES DO VEÍCULO", 
           style: GoogleFonts.montserrat(
-            color: corItensBarra, // <--- AQUI ESTAVA O PROBLEMA, AGORA ESTÁ CORRIGIDO
+            color: corItensBarra, 
             fontWeight: FontWeight.bold, 
             fontSize: 16, 
             letterSpacing: 1.2
@@ -120,61 +115,68 @@ class _DetalhesVeiculoScreenState extends State<DetalhesVeiculoScreen> {
         ),
       ),
       body: Container(
+        // O Container de fundo ocupa a tela TODA agora
+        width: double.infinity,
+        height: double.infinity,
         decoration: BoxDecoration(
           gradient: RadialGradient(
             center: Alignment.topCenter,
-            radius: 1.5,
+            radius: 1.2,
             colors: coresGradiente,
           ),
         ),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            bool isWeb = constraints.maxWidth > 900;
-            if (isWeb) {
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    flex: 6,
-                    child: Container(
-                      margin: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20), 
-                        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 15, offset: const Offset(0,5))]
-                      ),
-                      clipBehavior: Clip.antiAlias,
-                      child: _buildCarrossel(height: constraints.maxHeight - 40),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 4,
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.only(right: 40, top: 20, bottom: 20),
-                      child: _buildInfoColumn(corTextoConteudo, corDestaqueBotao, settings.isDark),
-                    ),
-                  ),
-                ],
-              );
-            } else {
-              return SingleChildScrollView(
-                child: Column(
+        // SafeArea garante que o conteúdo não fique escondido atrás da barra, 
+        // mas o fundo continua lá atrás.
+        child: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              bool isWeb = constraints.maxWidth > 900;
+              if (isWeb) {
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.all(10.0),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(20),
-                        child: _buildCarrossel(height: 300)
+                    Expanded(
+                      flex: 6,
+                      child: Container(
+                        margin: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20), 
+                          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 15, offset: const Offset(0,5))]
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: _buildCarrossel(height: constraints.maxHeight - 40),
                       ),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: _buildInfoColumn(corTextoConteudo, corDestaqueBotao, settings.isDark),
+                    Expanded(
+                      flex: 4,
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.only(right: 40, top: 20, bottom: 20),
+                        child: _buildInfoColumn(corTextoConteudo, corDestaqueBotao, settings.isDark),
+                      ),
                     ),
                   ],
-                ),
-              );
-            }
-          },
+                );
+              } else {
+                return SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(10.0),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(20),
+                          child: _buildCarrossel(height: 300)
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: _buildInfoColumn(corTextoConteudo, corDestaqueBotao, settings.isDark),
+                      ),
+                    ],
+                  ),
+                );
+              }
+            },
+          ),
         ),
       ),
     );

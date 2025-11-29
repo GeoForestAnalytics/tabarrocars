@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:lottie/lottie.dart'; 
 import 'package:flutter_animate/flutter_animate.dart'; 
 import 'package:url_launcher/url_launcher.dart';
 
@@ -89,16 +88,14 @@ class _DetalhesImovelScreenState extends State<DetalhesImovelScreen> {
 
     final Color corItensBarra = settings.isDark ? dourado : azulMarinho;
     final Color corTextoConteudo = settings.isDark ? Colors.white : azulMarinho;
-    
-    // COR DO BOTÃO: AMARELO PASTEL / CREME (Suave e elegante)
     final Color corDestaqueBotao = const Color(0xFFF0E68C); 
 
-    // Gradiente de Fundo
     final List<Color> coresGradiente = settings.isDark 
         ? [const Color(0xFF1E293B), Colors.black] 
         : [const Color(0xFFFFFDF0), const Color(0xFFEBE4AB)];
 
     return Scaffold(
+      extendBodyBehindAppBar: true, 
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -116,61 +113,65 @@ class _DetalhesImovelScreenState extends State<DetalhesImovelScreen> {
         ),
       ),
       body: Container(
+        width: double.infinity,
+        height: double.infinity,
         decoration: BoxDecoration(
           gradient: RadialGradient(
             center: Alignment.topCenter,
-            radius: 1.5,
+            radius: 1.2,
             colors: coresGradiente,
           ),
         ),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            bool isWeb = constraints.maxWidth > 900;
-            if (isWeb) {
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    flex: 6,
-                    child: Container(
-                      margin: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20), 
-                        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 15, offset: const Offset(0,5))]
-                      ),
-                      clipBehavior: Clip.antiAlias,
-                      child: _buildCarrossel(height: constraints.maxHeight - 40),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 4,
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.only(right: 40, top: 20, bottom: 20),
-                      child: _buildInfoColumn(corTextoConteudo, corDestaqueBotao, settings.isDark),
-                    ),
-                  ),
-                ],
-              );
-            } else {
-              return SingleChildScrollView(
-                child: Column(
+        child: SafeArea( 
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              bool isWeb = constraints.maxWidth > 900;
+              if (isWeb) {
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.all(10.0),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(20),
-                        child: _buildCarrossel(height: 300)
+                    Expanded(
+                      flex: 6,
+                      child: Container(
+                        margin: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20), 
+                          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 15, offset: const Offset(0,5))]
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: _buildCarrossel(height: constraints.maxHeight - 40),
                       ),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: _buildInfoColumn(corTextoConteudo, corDestaqueBotao, settings.isDark),
+                    Expanded(
+                      flex: 4,
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.only(right: 40, top: 20, bottom: 20),
+                        child: _buildInfoColumn(corTextoConteudo, corDestaqueBotao, settings.isDark),
+                      ),
                     ),
                   ],
-                ),
-              );
-            }
-          },
+                );
+              } else {
+                return SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(10.0),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(20),
+                          child: _buildCarrossel(height: 300)
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: _buildInfoColumn(corTextoConteudo, corDestaqueBotao, settings.isDark),
+                      ),
+                    ],
+                  ),
+                );
+              }
+            },
+          ),
         ),
       ),
     );
@@ -256,8 +257,8 @@ class _DetalhesImovelScreenState extends State<DetalhesImovelScreen> {
 
         const SizedBox(height: 30),
 
-        // === CENÁRIO: CASA ANIMADA (LOTTIE ONLINE - SEM ERRO DE ARQUIVO) ===
-        _buildCenarioCasaAnimada(corTexto, isDark),
+        // === CENÁRIO: CASA ESTILO FLAT (IGUAL O CARRO) ===
+        _buildCenarioCasaStyle(corTexto, isDark),
 
         const SizedBox(height: 30),
 
@@ -280,29 +281,20 @@ class _DetalhesImovelScreenState extends State<DetalhesImovelScreen> {
 
         const SizedBox(height: 40),
 
-        // === BOTÃO PASTEL + LOTTIE ONLINE ===
         SizedBox(
           width: double.infinity,
           height: 60,
           child: ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
-              backgroundColor: corDestaque, // Amarelo Pastel
-              foregroundColor: Colors.black, // Texto Preto
+              backgroundColor: corDestaque,
+              foregroundColor: Colors.black, 
               elevation: 5,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))
             ),
             onPressed: () {
               WhatsAppService.abrirWhatsApp(context: context, numeroTelefone: "5515981325236", mensagem: "Olá! Gostei do imóvel *${widget.imovel.titulo}* e quero agendar visita.");
             },
-            icon: SizedBox(
-              width: 40, height: 40,
-              child: Lottie.network(
-                // Ícone do WhatsApp 3D online
-                'https://lottie.host/98c25735-a682-4467-938b-d775196420b9/N0lC7q0E5U.json',
-                fit: BoxFit.contain,
-                errorBuilder: (ctx, err, stack) => const Icon(Icons.chat, size: 30),
-              ),
-            ),
+            icon: const Icon(Icons.chat, size: 28),
             label: const Text("AGENDAR VISITA", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
           ),
         )
@@ -314,20 +306,13 @@ class _DetalhesImovelScreenState extends State<DetalhesImovelScreen> {
     );
   }
 
-  // --- ANIMAÇÃO DE CASA (Lottie Online - Garantido que funciona) ---
-  Widget _buildCenarioCasaAnimada(Color corTexto, bool isDark) {
+  // --- CENÁRIO CASA FLAT (IGUAL AO CARRO) ---
+  Widget _buildCenarioCasaStyle(Color corTexto, bool isDark) {
     return Container(
-      height: 220,
+      height: 200,
       width: double.infinity,
       decoration: BoxDecoration(
-        // Mantivemos o seu gradiente bonito de fundo
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: isDark 
-            ? [const Color(0xFF0F172A), const Color(0xFF1E293B)] 
-            : [Colors.white.withOpacity(0.5), Colors.white.withOpacity(0.2)],
-        ),
+        color: isDark ? const Color(0xFF1E293B) : Colors.white.withOpacity(0.5), 
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.grey.withOpacity(0.2)),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 5))]
@@ -336,19 +321,127 @@ class _DetalhesImovelScreenState extends State<DetalhesImovelScreen> {
       child: Stack(
         alignment: Alignment.bottomCenter,
         children: [
-          // AQUI ESTÁ A MUDANÇA: Usamos Image.asset para o GIF
-          SizedBox(
-            height: 200, 
-            width: double.infinity,
-            child: Image.asset(
-              'assets/images/casa.gif', // <--- NOME DO SEU ARQUIVO AQUI
-              fit: BoxFit.contain, // Ajusta para aparecer a casa inteira sem cortar
-            ),
-          )
-          // Mantivemos a animação de entrada (Pop) para ficar estiloso
-          .animate().scale(duration: 1.seconds, curve: Curves.elasticOut)
-          .fadeIn(duration: 800.ms), 
+           // Chão
+           Positioned(
+            bottom: 0, left: 0, right: 0, height: 40,
+            child: Container(color: Colors.grey[800]), 
+          ),
+          // Grama
+          Positioned(
+            bottom: 35, left: 0, right: 0, height: 10,
+            child: Container(color: Colors.green[800]), 
+          ),
+
+          // A Casa desenhada com código
+          Positioned(
+            bottom: 25,
+            child: _desenharCasaFlat(corTexto)
+            .animate()
+            .slideY(begin: 1.0, end: 0, duration: 1.seconds, curve: Curves.easeOutBack) // Casa sobe do chão
+          ),
         ],
+      ),
+    );
+  }
+
+  // Desenho da casa usando apenas Widgets (Sem imagens externas para não quebrar)
+  Widget _desenharCasaFlat(Color corTexto) {
+    return SizedBox(
+      width: 220,
+      height: 160,
+      child: Stack(
+        alignment: Alignment.bottomCenter,
+        children: [
+          // Fumaça da chaminé 1 (Sai imediatamente)
+          Positioned(
+            top: 10, right: 50,
+            child: Icon(Icons.cloud, color: Colors.grey.withOpacity(0.5), size: 20)
+            .animate(onPlay: (c) => c.repeat())
+            .moveY(begin: 0, end: -30, duration: 2.seconds)
+            .fadeOut(duration: 2.seconds),
+          ),
+          
+          // Fumaça da chaminé 2 (Sai com atraso)
+          Positioned(
+            top: 25, right: 40,
+            child: Icon(Icons.cloud, color: Colors.grey.withOpacity(0.5), size: 15)
+            // CORREÇÃO AQUI: O delay vem antes, e o repeat fica vazio
+            .animate(delay: 500.ms, onPlay: (c) => c.repeat()) 
+            .moveY(begin: 0, end: -30, duration: 2.seconds)
+            .fadeOut(duration: 2.seconds),
+          ),
+
+          // Chaminé
+          Positioned(
+            top: 40, right: 45,
+            child: Container(width: 20, height: 30, color: const Color(0xFF5D4037)),
+          ),
+
+          // Corpo da Casa
+          Container(
+            width: 160, height: 100,
+            decoration: BoxDecoration(
+              color: const Color(0xFFECEFF1), // Branco Gelo
+              boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 5, offset: const Offset(3, 3))],
+              border: Border.all(color: Colors.grey[400]!),
+            ),
+          ),
+
+          // Telhado (Triângulo usando ClipPath)
+          Positioned(
+            top: 20,
+            child: ClipPath(
+              clipper: TrianguloClipper(),
+              child: Container(
+                width: 180, height: 60,
+                color: const Color(0xFF37474F), // Cinza Escuro
+              ),
+            ),
+          ),
+
+          // Porta
+          Positioned(
+            bottom: 0,
+            child: Container(
+              width: 30, height: 50,
+              decoration: BoxDecoration(
+                color: const Color(0xFF795548), // Marrom
+                border: Border.all(color: Colors.brown[800]!),
+              ),
+            ),
+          ),
+
+          // Janela Esquerda
+          Positioned(
+            bottom: 40, left: 50,
+            child: _janela(),
+          ),
+          
+          // Janela Direita
+          Positioned(
+            bottom: 40, right: 50,
+            child: _janela(),
+          ),
+
+          // Degrau
+          Positioned(
+            bottom: 0,
+            child: Container(width: 40, height: 5, color: Colors.grey),
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _janela() {
+    return Container(
+      width: 30, height: 30,
+      decoration: BoxDecoration(
+        color: const Color(0xFFB3E5FC), // Azul vidro
+        border: Border.all(color: const Color(0xFF37474F), width: 2),
+      ),
+      child: Center(
+        child: Container(width: 2, height: 30, color: const Color(0xFF37474F)), // Grade da janela
       ),
     );
   }
@@ -372,4 +465,20 @@ class _DetalhesImovelScreenState extends State<DetalhesImovelScreen> {
       ],
     ).animate().scale(delay: delayMs.ms, duration: 400.ms, curve: Curves.easeOutBack);
   }
+}
+
+// Classe auxiliar para desenhar o triângulo do telhado
+class TrianguloClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    path.moveTo(size.width / 2, 0); // Topo
+    path.lineTo(size.width, size.height); // Direita baixo
+    path.lineTo(0, size.height); // Esquerda baixo
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
 }
