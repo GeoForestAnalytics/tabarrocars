@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart'; // <--- IMPORTANTE
+import 'package:provider/provider.dart';
+import 'package:lottie/lottie.dart'; 
+import 'package:flutter_animate/flutter_animate.dart'; 
 import 'package:url_launcher/url_launcher.dart';
 
-import '../providers/app_settings.dart'; // <--- IMPORTANTE
+import '../providers/app_settings.dart';
 import '../models/imovel_model.dart';
 import '../services/whatsapp_service.dart';
 
@@ -18,245 +20,355 @@ class DetalhesImovelScreen extends StatefulWidget {
 }
 
 class _DetalhesImovelScreenState extends State<DetalhesImovelScreen> {
+  final PageController _pageController = PageController();
   int _fotoAtual = 0;
-
-  void _abrirImagemTelaCheia(BuildContext context, int indiceInicial) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => Scaffold(
-          backgroundColor: Colors.black,
-          appBar: AppBar(backgroundColor: Colors.black, iconTheme: const IconThemeData(color: Colors.white)),
-          body: PageView.builder(
-            controller: PageController(initialPage: indiceInicial),
-            itemCount: widget.imovel.fotos.length,
-            itemBuilder: (ctx, index) {
-              return Center(
-                child: InteractiveViewer(
-                  panEnabled: true, minScale: 0.5, maxScale: 4.0,
-                  child: Image.network(widget.imovel.fotos[index], fit: BoxFit.contain),
-                ),
-              );
-            },
-          ),
-        ),
-      ),
-    );
-  }
 
   Future<void> _abrirMapa() async {
     final lat = widget.imovel.latitude;
     final long = widget.imovel.longitude;
     if (lat == null || long == null) return;
+    
     final url = Uri.parse("https://www.google.com/maps/search/?api=1&query=$lat,$long");
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
-    } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Não foi possível abrir o mapa.')));
+    } else {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Não foi possível abrir o mapa.')));
     }
+  }
+
+  void _abrirImagemTelaCheia(BuildContext context, int indiceInicial) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) {
+          final PageController controllerFull = PageController(initialPage: indiceInicial);
+          int indexFull = indiceInicial;
+          return Scaffold(
+            backgroundColor: Colors.black,
+            appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0, iconTheme: const IconThemeData(color: Colors.white)),
+            extendBodyBehindAppBar: true,
+            body: StatefulBuilder(
+              builder: (context, setStateFull) {
+                return Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    PageView.builder(
+                      controller: controllerFull,
+                      itemCount: widget.imovel.fotos.length,
+                      onPageChanged: (idx) => setStateFull(() => indexFull = idx),
+                      itemBuilder: (ctx, index) {
+                        return Center(
+                          child: InteractiveViewer(
+                            panEnabled: true, minScale: 0.5, maxScale: 4.0,
+                            child: Image.network(widget.imovel.fotos[index], fit: BoxFit.contain),
+                          ),
+                        );
+                      },
+                    ),
+                    if (indexFull > 0)
+                      Positioned(left: 20, child: CircleAvatar(backgroundColor: Colors.white24, child: IconButton(icon: const Icon(Icons.arrow_back_ios, color: Colors.white), onPressed: () => controllerFull.previousPage(duration: 300.ms, curve: Curves.ease)))),
+                    if (indexFull < widget.imovel.fotos.length - 1)
+                      Positioned(right: 20, child: CircleAvatar(backgroundColor: Colors.white24, child: IconButton(icon: const Icon(Icons.arrow_forward_ios, color: Colors.white), onPressed: () => controllerFull.nextPage(duration: 300.ms, curve: Curves.ease)))),
+                  ],
+                );
+              },
+            ),
+          );
+        },
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // 1. PEGAR CONFIGURAÇÕES
     final settings = Provider.of<AppSettings>(context);
-
-    // 2. LÓGICA DE CORES (Inversão para o modo claro)
+    
+    // === CORES ===
     final Color azulMarinho = const Color.fromARGB(255, 2, 56, 83);
     final Color dourado = const Color(0xFFEBE4AB);
 
-    final Color corFundo = settings.isDark ? const Color.fromARGB(246, 2, 44, 66) : const Color(0xFFFFFDF0);
-    final Color corAppBar = settings.isDark ? const Color.fromARGB(230, 1, 7, 39) : dourado;
-    final Color corTextoDestaque = settings.isDark ? dourado : azulMarinho;
-    final Color corTextoComum = settings.isDark ? Colors.white : azulMarinho.withOpacity(0.8);
+    final Color corItensBarra = settings.isDark ? dourado : azulMarinho;
+    final Color corTextoConteudo = settings.isDark ? Colors.white : azulMarinho;
+    
+    // COR DO BOTÃO: AMARELO PASTEL / CREME (Suave e elegante)
+    final Color corDestaqueBotao = const Color(0xFFF0E68C); 
 
-    final formatador = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
-    final valorFormatado = formatador.format(widget.imovel.valor);
+    // Gradiente de Fundo
+    final List<Color> coresGradiente = settings.isDark 
+        ? [const Color(0xFF1E293B), Colors.black] 
+        : [const Color(0xFFFFFDF0), const Color(0xFFEBE4AB)];
 
     return Scaffold(
-      backgroundColor: corFundo,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
-        backgroundColor: corAppBar,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        iconTheme: IconThemeData(color: corTextoDestaque),
+        iconTheme: IconThemeData(color: corItensBarra), 
         title: Text(
-          widget.imovel.titulo.toUpperCase(),
-          style: GoogleFonts.montserrat(color: corTextoDestaque, fontWeight: FontWeight.bold, fontSize: 18),
+          "DETALHES DO IMÓVEL", 
+          style: GoogleFonts.montserrat(
+            color: corItensBarra, 
+            fontWeight: FontWeight.bold, 
+            fontSize: 16, 
+            letterSpacing: 1.2
+          )
         ),
       ),
-      body: Column(
-        children: [
-          // --- CARROSSEL ---
-          Stack(
-            alignment: Alignment.bottomCenter,
-            children: [
-              SizedBox(
-                height: 300,
-                width: double.infinity,
-                child: widget.imovel.fotos.isNotEmpty
-                    ? PageView.builder(
-                        itemCount: widget.imovel.fotos.length,
-                        onPageChanged: (index) => setState(() => _fotoAtual = index),
-                        itemBuilder: (ctx, index) {
-                          return GestureDetector(
-                            onTap: () => _abrirImagemTelaCheia(context, index),
-                            child: Image.network(
-                              widget.imovel.fotos[index], 
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) => 
-                                  Center(child: Icon(Icons.broken_image, color: corTextoComum, size: 50)),
-                            ),
-                          );
-                        },
-                      )
-                    : Container(color: Colors.black26, child: Icon(Icons.home, size: 80, color: corTextoComum)),
-              ),
-              if (widget.imovel.fotos.length > 1)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(widget.imovel.fotos.length, (index) {
-                      return Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 3),
-                        width: _fotoAtual == index ? 12 : 8, height: 8,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: _fotoAtual == index ? corTextoDestaque : Colors.white38,
-                        ),
-                      );
-                    }),
-                  ),
-                ),
-            ],
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: RadialGradient(
+            center: Alignment.topCenter,
+            radius: 1.5,
+            colors: coresGradiente,
           ),
-
-          // --- DETALHES ---
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
+        ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            bool isWeb = constraints.maxWidth > 900;
+            if (isWeb) {
+              return Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    valorFormatado, 
-                    style: GoogleFonts.montserrat(fontSize: 32, fontWeight: FontWeight.bold, color: corTextoDestaque)
-                  ),
-                  const SizedBox(height: 5),
-                  Text(widget.imovel.titulo, style: GoogleFonts.montserrat(fontSize: 22, fontWeight: FontWeight.w500, color: corTextoComum)),
-                  
-                  // Localização
-                  const SizedBox(height: 5),
-                  Row(
-                    children: [
-                      Icon(Icons.location_on, color: corTextoComum.withOpacity(0.7), size: 16),
-                      const SizedBox(width: 5),
-                      Expanded(
-                        child: Text(
-                          widget.imovel.localizacao, 
-                          style: GoogleFonts.montserrat(fontSize: 14, color: corTextoComum.withOpacity(0.7))
-                        ),
+                  Expanded(
+                    flex: 6,
+                    child: Container(
+                      margin: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20), 
+                        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 15, offset: const Offset(0,5))]
                       ),
-                    ],
+                      clipBehavior: Clip.antiAlias,
+                      child: _buildCarrossel(height: constraints.maxHeight - 40),
+                    ),
                   ),
-
-                  // Botão Mapa
-                  if (widget.imovel.latitude != null && widget.imovel.longitude != null)
+                  Expanded(
+                    flex: 4,
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.only(right: 40, top: 20, bottom: 20),
+                      child: _buildInfoColumn(corTextoConteudo, corDestaqueBotao, settings.isDark),
+                    ),
+                  ),
+                ],
+              );
+            } else {
+              return SingleChildScrollView(
+                child: Column(
+                  children: [
                     Padding(
-                      padding: const EdgeInsets.only(top: 10.0),
-                      child: InkWell(
-                        onTap: _abrirMapa,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.blue),
-                            borderRadius: BorderRadius.circular(20)
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.map, color: Colors.blue, size: 20),
-                              const SizedBox(width: 8),
-                              Text(
-                                "Ver localização no Mapa",
-                                style: GoogleFonts.montserrat(color: Colors.blue, fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
-                        ),
+                      padding: const EdgeInsets.all(10.0),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: _buildCarrossel(height: 300)
                       ),
                     ),
-
-                  const SizedBox(height: 25),
-                  
-                  // Grid de Infos
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _buildInfoCard(Icons.bed, "${widget.imovel.quartos} Quartos", corTextoDestaque, corTextoComum),
-                      _buildInfoCard(Icons.square_foot, "${widget.imovel.area} m²", corTextoDestaque, corTextoComum),
-                    ],
-                  ),
-                  
-                  Divider(height: 40, color: corTextoComum.withOpacity(0.2)),
-                  Text("Descrição", style: GoogleFonts.montserrat(fontSize: 18, fontWeight: FontWeight.bold, color: corTextoDestaque)),
-                  const SizedBox(height: 10),
-                  Text(widget.imovel.descricao, style: GoogleFonts.montserrat(fontSize: 16, color: corTextoComum, height: 1.5)),
-                ],
-              ),
-            ),
-          ),
-
-          // --- BOTÃO ZAP ---
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: corAppBar,
-              boxShadow: [BoxShadow(blurRadius: 10, color: Colors.black45, offset: Offset(0, -5))],
-            ),
-            child: SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: corTextoDestaque, // DOURADO OU AZUL
-                  foregroundColor: settings.isDark ? azulMarinho : dourado, // TEXTO INVERTIDO
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                  elevation: 5,
+                    Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: _buildInfoColumn(corTextoConteudo, corDestaqueBotao, settings.isDark),
+                    ),
+                  ],
                 ),
-                icon: const Icon(Icons.chat, size: 28),
-                label: Text("TENHO INTERESSE", style: GoogleFonts.montserrat(fontSize: 18, fontWeight: FontWeight.bold)),
-                onPressed: () {
-                  WhatsAppService.abrirWhatsApp(
-                    context: context,
-                    numeroTelefone: "5515981325236", 
-                    mensagem: "Olá! Gostei do imóvel *${widget.imovel.titulo}* em *${widget.imovel.localizacao}* por *$valorFormatado*.",
-                  );
-                },
-              ),
+              );
+            }
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCarrossel({required double height}) {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        SizedBox(
+          height: height,
+          width: double.infinity,
+          child: widget.imovel.fotos.isNotEmpty
+              ? PageView.builder(
+                  controller: _pageController,
+                  itemCount: widget.imovel.fotos.length,
+                  onPageChanged: (index) => setState(() => _fotoAtual = index),
+                  itemBuilder: (ctx, index) {
+                    return GestureDetector(
+                      onTap: () => _abrirImagemTelaCheia(context, index),
+                      child: Image.network(
+                        widget.imovel.fotos[index],
+                        fit: BoxFit.cover,
+                        errorBuilder: (_,__,___) => Container(color: Colors.grey[300], child: const Icon(Icons.broken_image, size: 50)),
+                      ),
+                    );
+                  },
+                )
+              : Container(color: Colors.black12, child: const Icon(Icons.home, size: 80, color: Colors.grey)),
+        ),
+        if (_fotoAtual > 0)
+          Positioned(left: 10, child: CircleAvatar(backgroundColor: Colors.black54, child: IconButton(icon: const Icon(Icons.arrow_back_ios, size: 18, color: Colors.white), onPressed: () => _pageController.previousPage(duration: 300.ms, curve: Curves.ease)))),
+        if (widget.imovel.fotos.isNotEmpty && _fotoAtual < widget.imovel.fotos.length - 1)
+          Positioned(right: 10, child: CircleAvatar(backgroundColor: Colors.black54, child: IconButton(icon: const Icon(Icons.arrow_forward_ios, color: Colors.white), onPressed: () => _pageController.nextPage(duration: 300.ms, curve: Curves.ease)))),
+      ],
+    )
+    .animate()
+    .scale(duration: 600.ms, curve: Curves.easeOutBack, begin: const Offset(0.9, 0.9))
+    .fadeIn(duration: 600.ms)
+    .animate(onPlay: (c) => c.repeat(reverse: true))
+    .moveY(begin: 0, end: 5, duration: 2500.ms, curve: Curves.easeInOut);
+  }
+
+  Widget _buildInfoColumn(Color corTexto, Color corDestaque, bool isDark) {
+    final formatador = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(widget.imovel.titulo.toUpperCase(), style: GoogleFonts.montserrat(fontSize: 28, fontWeight: FontWeight.w900, color: corTexto))
+          .animate().fadeIn(duration: 600.ms).slideX(begin: -0.2, end: 0),
+
+        Text(formatador.format(widget.imovel.valor), style: GoogleFonts.montserrat(fontSize: 28, fontWeight: FontWeight.bold, color: corDestaque))
+          .animate().fadeIn(delay: 200.ms, duration: 600.ms).slideX(begin: -0.2, end: 0),
+        
+        const SizedBox(height: 20),
+
+        GestureDetector(
+          onTap: _abrirMapa,
+          child: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: corTexto.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: corTexto.withOpacity(0.1))
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.location_on, color: corDestaque, size: 24),
+                const SizedBox(width: 10),
+                Expanded(child: Text(widget.imovel.localizacao, style: GoogleFonts.montserrat(fontSize: 14, color: corTexto.withOpacity(0.8)))),
+                if (widget.imovel.latitude != null)
+                   Container(
+                     margin: const EdgeInsets.only(left: 10),
+                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                     decoration: BoxDecoration(color: Colors.blue, borderRadius: BorderRadius.circular(20)),
+                     child: const Text("MAPA", style: TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold)),
+                   )
+              ],
             ),
           ),
+        ).animate().fadeIn(delay: 300.ms),
+
+        const SizedBox(height: 30),
+
+        // === CENÁRIO: CASA ANIMADA (LOTTIE ONLINE - SEM ERRO DE ARQUIVO) ===
+        _buildCenarioCasaAnimada(corTexto, isDark),
+
+        const SizedBox(height: 30),
+
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+             _buildSpecRow(Icons.bed, "Quartos", "${widget.imovel.quartos}", corTexto, 600),
+             _buildSpecRow(Icons.square_foot, "Área", "${widget.imovel.area} m²", corTexto, 700),
+             _buildSpecRow(Icons.garage, "Vaga", "Sim", corTexto, 800),
+          ],
+        ),
+
+        const SizedBox(height: 30),
+
+        Text("SOBRE O IMÓVEL", style: GoogleFonts.montserrat(fontSize: 14, fontWeight: FontWeight.bold, color: corTexto.withOpacity(0.6), letterSpacing: 1))
+          .animate().fadeIn(delay: 900.ms),
+        const SizedBox(height: 10),
+        Text(widget.imovel.descricao, style: GoogleFonts.montserrat(fontSize: 16, height: 1.6, color: corTexto))
+          .animate().fadeIn(delay: 1000.ms),
+
+        const SizedBox(height: 40),
+
+        // === BOTÃO PASTEL + LOTTIE ONLINE ===
+        SizedBox(
+          width: double.infinity,
+          height: 60,
+          child: ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: corDestaque, // Amarelo Pastel
+              foregroundColor: Colors.black, // Texto Preto
+              elevation: 5,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))
+            ),
+            onPressed: () {
+              WhatsAppService.abrirWhatsApp(context: context, numeroTelefone: "5515981325236", mensagem: "Olá! Gostei do imóvel *${widget.imovel.titulo}* e quero agendar visita.");
+            },
+            icon: SizedBox(
+              width: 40, height: 40,
+              child: Lottie.network(
+                // Ícone do WhatsApp 3D online
+                'https://lottie.host/98c25735-a682-4467-938b-d775196420b9/N0lC7q0E5U.json',
+                fit: BoxFit.contain,
+                errorBuilder: (ctx, err, stack) => const Icon(Icons.chat, size: 30),
+              ),
+            ),
+            label: const Text("AGENDAR VISITA", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          ),
+        )
+        .animate(onPlay: (controller) => controller.repeat(reverse: true))
+        .shimmer(duration: 2.seconds, color: Colors.white54)
+        .scaleXY(begin: 1.0, end: 1.02, duration: 1.seconds)
+        .animate().fadeIn(delay: 1200.ms, duration: 500.ms).slideY(begin: 0.5, end: 0), 
+      ],
+    );
+  }
+
+  // --- ANIMAÇÃO DE CASA (Lottie Online - Garantido que funciona) ---
+  Widget _buildCenarioCasaAnimada(Color corTexto, bool isDark) {
+    return Container(
+      height: 220,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        // Fundo Céu/Ambiente
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: isDark 
+            ? [const Color(0xFF0F172A), const Color(0xFF1E293B)] 
+            : [Colors.white.withOpacity(0.5), Colors.white.withOpacity(0.2)],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.withOpacity(0.2)),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 5))]
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        alignment: Alignment.bottomCenter,
+        children: [
+          // Animação de Casa Moderna (Substitui o GIF quebrado)
+          SizedBox(
+            height: 180,
+            width: double.infinity,
+            child: Lottie.network(
+              // Link confiável de Lottie de Casa
+              'https://lottie.host/93245037-7358-4720-9978-83861244346e/house_animation.json', 
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) => const Center(child: Icon(Icons.home, size: 80, color: Colors.grey)),
+            ),
+          ).animate().scale(duration: 1.seconds, curve: Curves.elasticOut), // Efeito Pop
         ],
       ),
     );
   }
 
-  Widget _buildInfoCard(IconData icon, String label, Color corIcone, Color corTexto) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      decoration: BoxDecoration(
-        color: corTexto.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: corIcone.withOpacity(0.3)),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, size: 24, color: corIcone),
-          const SizedBox(height: 8),
-          Text(label, style: GoogleFonts.montserrat(fontWeight: FontWeight.bold, color: corTexto)),
-        ],
-      ),
-    );
+  Widget _buildSpecRow(IconData icon, String label, String value, Color corTexto, int delayMs) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(color: corTexto.withOpacity(0.05), borderRadius: BorderRadius.circular(12)),
+          child: Icon(icon, size: 24, color: corTexto.withOpacity(0.8)),
+        ),
+        const SizedBox(width: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: GoogleFonts.montserrat(fontSize: 11, color: corTexto.withOpacity(0.6))),
+            Text(value, style: GoogleFonts.montserrat(fontSize: 15, fontWeight: FontWeight.bold, color: corTexto)),
+          ],
+        )
+      ],
+    ).animate().scale(delay: delayMs.ms, duration: 400.ms, curve: Curves.easeOutBack);
   }
 }

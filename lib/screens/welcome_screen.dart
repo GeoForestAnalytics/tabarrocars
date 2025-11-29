@@ -121,30 +121,33 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 const Spacer(flex: 3),
 
                 // --- 3. BOTÃO COMPRAR ---
-                SizedBox(
-                  width: double.infinity,
-                  height: 60,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: corAzulEscura,
-                      foregroundColor: corDourada,
-                      elevation: 8,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                    ),
-                    onPressed: () {
-                      _tocarClique();
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const HomeScreen()));
-                    },
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.search, size: 28),
-                        const SizedBox(width: 12),
-                        Text(
-                          "QUERO COMPRAR",
-                          style: GoogleFonts.montserrat(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1),
-                        ),
-                      ],
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 400), // <--- O SEGREDO ESTÁ AQUI (Máximo 400px de largura)
+                  child: SizedBox(
+                    width: double.infinity, // Tenta crescer tudo, mas o ConstrainedBox freia em 400px
+                    height: 60,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: corAzulEscura,
+                        foregroundColor: corDourada,
+                        elevation: 8,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                      ),
+                      onPressed: () {
+                        _tocarClique();
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const HomeScreen()));
+                      },
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.search, size: 28),
+                          const SizedBox(width: 12),
+                          Text(
+                            "QUERO COMPRAR",
+                            style: GoogleFonts.montserrat(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ).animate().slideY(begin: 2, end: 0, delay: 800.ms, duration: 600.ms, curve: Curves.easeOut),
@@ -152,34 +155,37 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 const SizedBox(height: 20),
 
                 // --- 4. BOTÃO VENDER ---
-                SizedBox(
-                  width: double.infinity,
-                  height: 60,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: corDourada,
-                      foregroundColor: corAzulEscura,
-                      elevation: 8,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                    ),
-                    onPressed: () {
-                      _tocarClique();
-                      WhatsAppService.abrirWhatsApp(
-                        context: context,
-                        numeroTelefone: "5515981325236",
-                        mensagem: "Olá! Gostaria de anunciar meu veículo/imóvel com vocês.",
-                      );
-                    },
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.chat, size: 28),
-                        const SizedBox(width: 12),
-                        Text(
-                          "QUERO VENDER",
-                          style: GoogleFonts.montserrat(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1),
-                        ),
-                      ],
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 400), // <--- APLICA AQUI TAMBÉM
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 60,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: corDourada,
+                        foregroundColor: corAzulEscura,
+                        elevation: 8,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                      ),
+                      onPressed: () {
+                        _tocarClique();
+                        WhatsAppService.abrirWhatsApp(
+                          context: context,
+                          numeroTelefone: "5515981325236",
+                          mensagem: "Olá! Gostaria de anunciar meu veículo/imóvel com vocês.",
+                        );
+                      },
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.chat, size: 28),
+                          const SizedBox(width: 12),
+                          Text(
+                            "QUERO VENDER",
+                            style: GoogleFonts.montserrat(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ).animate().slideY(begin: 2, end: 0, delay: 1000.ms, duration: 600.ms, curve: Curves.easeOut),
