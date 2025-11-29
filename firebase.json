@@ -1,1 +1,39 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"tabarrocars","appId":"1:47935554618:android:605d89b2ea4cbf68a52103","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"tabarrocars","configurations":{"android":"1:47935554618:android:605d89b2ea4cbf68a52103","ios":"1:47935554618:ios:43fe3bab2ee23408a52103","macos":"1:47935554618:ios:43fe3bab2ee23408a52103","web":"1:47935554618:web:9c746f35a6ee2506a52103","windows":"1:47935554618:web:ab7c1e75bcf121c5a52103"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "tabarrocars",
+          "appId": "1:47935554618:android:605d89b2ea4cbf68a52103",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "tabarrocars",
+          "configurations": {
+            "android": "1:47935554618:android:605d89b2ea4cbf68a52103",
+            "ios": "1:47935554618:ios:43fe3bab2ee23408a52103",
+            "macos": "1:47935554618:ios:43fe3bab2ee23408a52103",
+            "web": "1:47935554618:web:9c746f35a6ee2506a52103",
+            "windows": "1:47935554618:web:ab7c1e75bcf121c5a52103"
+          }
+        }
+      }
+    }
+  },
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}

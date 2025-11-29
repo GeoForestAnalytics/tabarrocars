@@ -80,8 +80,8 @@ class _SplashScreenState extends State<SplashScreen> {
 
             // 2. O LOGO COM EFEITO DE ENERGIA/BRILHO NA BORDA
             Container(
-              width: 280, // Tamanho controlado para não ficar gigante
-              height: 280,
+              width: 500, // Tamanho controlado para não ficar gigante
+              height: 500,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 // Sombras que criam o efeito de "Glow"

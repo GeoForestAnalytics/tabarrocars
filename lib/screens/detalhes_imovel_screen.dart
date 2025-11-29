@@ -320,7 +320,7 @@ class _DetalhesImovelScreenState extends State<DetalhesImovelScreen> {
       height: 220,
       width: double.infinity,
       decoration: BoxDecoration(
-        // Fundo Céu/Ambiente
+        // Mantivemos o seu gradiente bonito de fundo
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
@@ -336,17 +336,18 @@ class _DetalhesImovelScreenState extends State<DetalhesImovelScreen> {
       child: Stack(
         alignment: Alignment.bottomCenter,
         children: [
-          // Animação de Casa Moderna (Substitui o GIF quebrado)
+          // AQUI ESTÁ A MUDANÇA: Usamos Image.asset para o GIF
           SizedBox(
-            height: 180,
+            height: 200, 
             width: double.infinity,
-            child: Lottie.network(
-              // Link confiável de Lottie de Casa
-              'https://lottie.host/93245037-7358-4720-9978-83861244346e/house_animation.json', 
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) => const Center(child: Icon(Icons.home, size: 80, color: Colors.grey)),
+            child: Image.asset(
+              'assets/images/casa.gif', // <--- NOME DO SEU ARQUIVO AQUI
+              fit: BoxFit.contain, // Ajusta para aparecer a casa inteira sem cortar
             ),
-          ).animate().scale(duration: 1.seconds, curve: Curves.elasticOut), // Efeito Pop
+          )
+          // Mantivemos a animação de entrada (Pop) para ficar estiloso
+          .animate().scale(duration: 1.seconds, curve: Curves.elasticOut)
+          .fadeIn(duration: 800.ms), 
         ],
       ),
     );

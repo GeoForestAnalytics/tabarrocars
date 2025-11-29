@@ -78,7 +78,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   ),
                   child: Image.asset(
                     'assets/images/logo1.png',
-                    height: 250, // Ajustei levemente para caber na borda
+                    height: 300, // Ajustei levemente para caber na borda
                     fit: BoxFit.contain,
                   ),
                 )
